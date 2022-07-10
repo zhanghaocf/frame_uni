@@ -1,0 +1,75 @@
+kind: pipeline
+type: docker
+name: lqai_weixin
+
+steps:
+- name: setup
+  image: node:16
+  commands:
+  - yarn install
+
+- name: build for weixin
+  image: node:16
+  commands:
+  - yarn build:mp-weixin
+
+- name: download key from weixin
+  image: plugins/download
+  settings:
+    source: https://operating.applet.leqi.us/privatekey/private.wxf757eedd7c21a2f2.key
+    destination: tools/weixin/private.key
+
+- name: upload weixin
+  image: node:16
+  commands:
+  - node tools/weixin/upload.js
+
+- name: notice weixin
+  image: node:16
+  commands:
+  - node tools/notice.js $WEBHOOK wx
+  environment:
+    WEBHOOK:
+      from_secret: feishu
+
+trigger:
+  branch:
+  - wedding  
+
+---
+kind: pipeline
+type: docker
+name: lqai_alipay
+
+steps:
+- name: setup
+  image: node:16
+  commands:
+  - yarn install
+
+- name: build for alipay
+  image: node:16
+  commands:
+  - yarn build:mp-alipay
+
+- name: upload alipay
+  image: node:16
+  commands:
+  - node tools/alipay/upload.js $TOOLID $SECRET
+  environment:
+    TOOLID:
+      from_secret: alipayToolId
+    SECRET:
+      from_secret: alipayPriKey
+
+- name: notice alipay
+  image: node:16
+  commands:
+  - node tools/notice.js $WEBHOOK alipay
+  environment:
+    WEBHOOK:
+      from_secret: feishu
+
+trigger:
+  branch:
+  - wedding
